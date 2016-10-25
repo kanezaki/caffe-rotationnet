@@ -144,6 +144,7 @@ void ImageDataLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(top->size(), 2) << "Input Layer takes two blobs as output.";
   const int new_height  = this->layer_param_.image_data_param().new_height();
   const int new_width  = this->layer_param_.image_data_param().new_height();
+  nRotation_ = this->layer_param_.image_data_param().num_rotation();
   CHECK((new_height == 0 && new_width == 0) ||
       (new_height > 0 && new_width > 0)) << "Current implementation requires "
       "new_height and new_width to be set at the same time.";
@@ -253,13 +254,15 @@ void ImageDataLayer<Dtype>::CreatePrefetchThread() {
 
 template <typename Dtype>
 void ImageDataLayer<Dtype>::ShuffleImages() {
-  const int num_images = lines_.size();
+  const int num_images = lines_.size() / nRotation_;
   for (int i = 0; i < num_images; ++i) {
     const int max_rand_index = num_images - i;
     const int rand_index = PrefetchRand() % max_rand_index;
-    pair<string, int> item = lines_[rand_index];
-    lines_.erase(lines_.begin() + rand_index);
-    lines_.push_back(item);
+    for (int j = 0; j < nRotation_; ++j) {
+      pair<string, int> item = lines_[rand_index * nRotation_];
+      lines_.erase(lines_.begin() + rand_index * nRotation_);
+      lines_.push_back(item);
+    }
   }
 }
 

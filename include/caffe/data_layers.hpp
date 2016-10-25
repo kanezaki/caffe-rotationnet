@@ -169,6 +169,7 @@ class ImageDataLayer : public Layer<Dtype> {
   shared_ptr<Blob<Dtype> > prefetch_label_;
   Blob<Dtype> data_mean_;
   Caffe::Phase phase_;
+  int nRotation_;
 };
 
 

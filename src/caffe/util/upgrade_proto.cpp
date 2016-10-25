@@ -222,6 +222,15 @@ bool UpgradeLayerParameter(const LayerParameter& v0_layer_connection,
       } else if (type == "pool") {
         layer_param->mutable_pooling_param()->set_stride(
             v0_layer_param.stride());
+      } else if (type == "my_softmax_loss") {
+        layer_param->mutable_my_softmax_loss_param()->set_stride(
+            v0_layer_param.stride());
+      } else if (type == "my_softmax") {
+        layer_param->mutable_my_softmax_param()->set_stride(
+            v0_layer_param.stride());
+      } else if (type == "my_accuracy") {
+        layer_param->mutable_my_accuracy_param()->set_stride(
+            v0_layer_param.stride());
       } else {
         LOG(ERROR) << "Unknown parameter stride for layer type " << type;
         is_fully_compatible = false;
@@ -534,6 +543,12 @@ LayerParameter_LayerType UpgradeV0LayerType(const string& type) {
     return LayerParameter_LayerType_SOFTMAX;
   } else if (type == "softmax_loss") {
     return LayerParameter_LayerType_SOFTMAX_LOSS;
+  } else if (type == "my_softmax_loss") {
+    return LayerParameter_LayerType_MY_SOFTMAX_LOSS;
+  } else if (type == "my_softmax") {
+    return LayerParameter_LayerType_MY_SOFTMAX;
+  } else if (type == "my_accuracy") {
+    return LayerParameter_LayerType_MY_ACCURACY;
   } else if (type == "split") {
     return LayerParameter_LayerType_SPLIT;
   } else if (type == "tanh") {

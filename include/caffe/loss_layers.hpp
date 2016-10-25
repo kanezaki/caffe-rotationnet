@@ -162,6 +162,31 @@ class AccuracyLayer : public Layer<Dtype> {
   }
 };
 
+/* MyAccuracyLayer
+  Note: not an actual loss layer! Does not implement backwards step.
+  Computes the accuracy and logprob of a with respect to b.
+*/
+template <typename Dtype>
+class MyAccuracyLayer : public Layer<Dtype> {
+ public:
+  explicit MyAccuracyLayer(const LayerParameter& param)
+      : Layer<Dtype>(param) {}
+  virtual void SetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+ protected:
+  virtual Dtype Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const bool propagate_down, vector<Blob<Dtype>*>* bottom) {
+    NOT_IMPLEMENTED;
+  }
+  int nClassLabel;
+  int nRotation;
+  int nSample;
+  vector< vector<int> > ang;
+};
+
 /* Also see
 - SoftmaxWithLossLayer in vision_layers.hpp
 */

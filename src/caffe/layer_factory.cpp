@@ -24,6 +24,8 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
   switch (type) {
   case LayerParameter_LayerType_ACCURACY:
     return new AccuracyLayer<Dtype>(param);
+  case LayerParameter_LayerType_MY_ACCURACY:
+    return new MyAccuracyLayer<Dtype>(param);
   case LayerParameter_LayerType_BNLL:
     return new BNLLLayer<Dtype>(param);
   case LayerParameter_LayerType_CONCAT:
@@ -74,6 +76,10 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new SoftmaxLayer<Dtype>(param);
   case LayerParameter_LayerType_SOFTMAX_LOSS:
     return new SoftmaxWithLossLayer<Dtype>(param);
+  case LayerParameter_LayerType_MY_SOFTMAX_LOSS:
+    return new MySoftmaxWithLossLayer<Dtype>(param);
+  case LayerParameter_LayerType_MY_SOFTMAX:
+    return new MySoftmaxLayer<Dtype>(param);
   case LayerParameter_LayerType_SPLIT:
     return new SplitLayer<Dtype>(param);
   case LayerParameter_LayerType_TANH:
