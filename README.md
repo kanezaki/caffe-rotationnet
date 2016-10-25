@@ -4,4 +4,4 @@
 
 ## Getting Started 
 
-Please see README.md in [rotationnet repository]()
+Please see README.md in [rotationnet repository](https://github.com/kanezaki/rotationnet)
