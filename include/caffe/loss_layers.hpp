@@ -184,6 +184,7 @@ class MyAccuracyLayer : public Layer<Dtype> {
   int nClassLabel;
   int nRotation;
   int nSample;
+  bool using_upright;
   vector< vector<int> > ang;
 };
 

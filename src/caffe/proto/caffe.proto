@@ -286,6 +286,7 @@ message InfogainLossParameter {
 message MySoftmaxLossParameter {
   // Specify the infogain matrix source.
   optional uint32 stride = 1;
+  optional bool using_upright = 2 [default = false];
 }
 
 // Message that stores parameters MySoftmaxLayer
@@ -298,6 +299,7 @@ message MySoftmaxParameter {
 message MyAccuracyParameter {
   // Specify the infogain matrix source.
   optional uint32 stride = 1;
+  optional bool using_upright = 2 [default = false];
 }
 
 // Message that stores parameters used by InnerProductLayer

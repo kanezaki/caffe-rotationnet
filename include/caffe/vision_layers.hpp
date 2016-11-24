@@ -414,6 +414,7 @@ class MySoftmaxWithLossLayer : public Layer<Dtype> {
   int nRotation;
   int nSample;
   int num;
+  bool using_upright;
   vector<int> labelR; // class + rotation
   vector<int> max_ang;
   vector< vector<int> > ang;

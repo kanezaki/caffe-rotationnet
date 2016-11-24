@@ -26,6 +26,7 @@ void MyAccuracyLayer<Dtype>::SetUp(
   CHECK_EQ(bottom[1]->width(), 1);
   (*top)[0]->Reshape(1, 2, 1, 1);
   nClassLabel = this->layer_param_.my_accuracy_param().stride();
+  using_upright = this->layer_param_.my_accuracy_param().using_upright();
   nRotation = bottom[0]->count() / (bottom[0]->num() * nClassLabel );
   nSample = bottom[0]->num() / nRotation;
   ang.resize( 60 );
@@ -115,15 +116,33 @@ Dtype MyAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     Dtype max_prob = -FLT_MAX;
 
     // decide pose
-    for (int i = 0; i < ang.size(); ++i) {
-      for (int c = 0; c < nClassLabel - 1; ++c) {
-	Dtype tmp_prob = 0;
-	for (int j = 0; j < nRotation; ++j){
-	  tmp_prob += log( bottom_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + c ] ) - log( max(bottom_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+    if ( using_upright ){
+      for (int i = 0; i < nRotation; ++i) {
+	for (int c = 0; c < nClassLabel - 1; ++c) {
+	  Dtype tmp_prob = 0;
+	  for (int j = 0; j < nRotation; ++j) {
+	    int idx = i + j;
+	    if( idx > nRotation - 1 ) idx -= nRotation;
+	    tmp_prob += log( bottom_data[ ( n * nRotation + idx ) * dim + j * nClassLabel + c ] ) - log( max(bottom_data[ ( n * nRotation + idx ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+	  }
+	  if( tmp_prob > max_prob ){ 
+	    max_ang = i;
+	    max_prob = tmp_prob;
+	  }
 	}
-	if( tmp_prob > max_prob ){
-	  max_ang = i;
-	  max_prob = tmp_prob;
+      }
+    }
+    else{
+      for (int i = 0; i < ang.size(); ++i) {
+	for (int c = 0; c < nClassLabel - 1; ++c) {
+	  Dtype tmp_prob = 0;
+	  for (int j = 0; j < nRotation; ++j){
+	    tmp_prob += log( bottom_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + c ] ) - log( max(bottom_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+	  }
+	  if( tmp_prob > max_prob ){
+	    max_ang = i;
+	    max_prob = tmp_prob;
+	  }
 	}
       }
     }
@@ -131,10 +150,19 @@ Dtype MyAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     // calc scores
     for (int j = 0; j < nClassLabel - 1; ++j) 
       scores[ j ] = 0;
-    for (int i = 0; i < nRotation; ++i) 
-      for (int j = 0; j < nClassLabel - 1; ++j) {
-	scores[ j ] += log( bottom_data[ ( n * nRotation + ang[ max_ang ][ i ] ) * dim + i * nClassLabel + j ] ) - log( max(bottom_data[ ( n * nRotation + ang[ max_ang ][ i ] ) * dim + i * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+    for (int i = 0; i < nRotation; ++i) {
+      int idx = -1;
+      if ( using_upright ){
+	int idx = i + max_ang;
+	if( idx > nRotation - 1 )
+	  idx -= nRotation;
       }
+      else
+	idx = ang[ max_ang ][ i ];
+      
+      for (int j = 0; j < nClassLabel - 1; ++j) 
+	scores[ j ] += log( bottom_data[ ( n * nRotation + idx ) * dim + i * nClassLabel + j ] ) - log( max(bottom_data[ ( n * nRotation + idx ) * dim + i * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+    }
 
     // calc accuracy
     for (int j = 0; j < nClassLabel - 1; ++j) {
@@ -158,6 +186,7 @@ Dtype MyAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   (*top)[0]->mutable_cpu_data()[1] = logprob / nSample;
   // Accuracy layer should not be used as a loss function.
 
+  LOG(INFO) << "Accuracy (batch) " << bottom_label[ 0 ] << ": " << accuracy / nSample ;
   return Dtype(0);
 }
 

@@ -19,6 +19,7 @@ void MySoftmaxWithLossLayer<Dtype>::SetUp(const vector<Blob<Dtype>*>& bottom,
   CHECK_EQ(top->size(), 0) << "MySoftmaxLoss Layer takes no blob as output.";
   softmax_bottom_vec_.clear();
   nClassLabel = this->layer_param_.my_softmax_loss_param().stride();
+  using_upright = this->layer_param_.my_softmax_loss_param().using_upright();
   num = bottom[0]->num();
   nRotation = bottom[0]->count() / (num * nClassLabel);
   labelR.resize( num );
@@ -118,21 +119,45 @@ Dtype MySoftmaxWithLossLayer<Dtype>::Forward_cpu(
     const int label_ = static_cast<int>(label[ n * nRotation ]);
     max_ang[ n ] = -1;
     Dtype max_prob = - Dtype(FLT_MAX);
-
-    for (int i = 0; i < ang.size(); ++i) {
-      Dtype tmp_prob = 0;
-      for (int j = 0; j < nRotation; ++j) {
-	tmp_prob += log( max(prob_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + label_ ], Dtype(FLT_MIN)) );
-	tmp_prob -= log( max(prob_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+    
+    if ( using_upright ){
+      for (int i = 0; i < nRotation; ++i) {
+	Dtype tmp_prob = 0;
+	for (int j = 0; j < nRotation; ++j) {
+	  int idx = i + j;
+	  if( idx > nRotation - 1 ) idx -= nRotation;
+	  tmp_prob += log( max(prob_data[ ( n * nRotation + idx ) * dim + j * nClassLabel + label_ ], Dtype(FLT_MIN)) );
+	  tmp_prob -= log( max(prob_data[ ( n * nRotation + idx ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+	}
+	if( tmp_prob > max_prob ){ 
+	  max_ang[ n ] = i;
+	  max_prob = tmp_prob;
+	}
       }
-      if( tmp_prob > max_prob ){
-	max_ang[ n ] = i;
-	max_prob = tmp_prob;
+
+      for (int i = 0; i < nRotation; ++i) {
+	int id = i + max_ang[ n ];
+	if( id > nRotation - 1 )
+	  id -= nRotation;
+	labelR[ n * nRotation + id ] = i * nClassLabel + label_;
       }
     }
-    
-    for (int i = 0; i < nRotation; ++i) 
-      labelR[ n * nRotation + ang[ max_ang[ n ] ][ i ] ] = i * nClassLabel + label_;
+    else{
+      for (int i = 0; i < ang.size(); ++i) {
+	Dtype tmp_prob = 0;
+	for (int j = 0; j < nRotation; ++j) {
+	  tmp_prob += log( max(prob_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + label_ ], Dtype(FLT_MIN)) );
+	  tmp_prob -= log( max(prob_data[ ( n * nRotation + ang[ i ][ j ] ) * dim + j * nClassLabel + nClassLabel - 1 ], Dtype(FLT_MIN)) );
+	}
+	if( tmp_prob > max_prob ){
+	  max_ang[ n ] = i;
+	  max_prob = tmp_prob;
+	}
+      }
+      
+      for (int i = 0; i < nRotation; ++i) 
+	labelR[ n * nRotation + ang[ max_ang[ n ] ][ i ] ] = i * nClassLabel + label_;
+    }
   }
 
   // loss
@@ -160,15 +185,22 @@ void MySoftmaxWithLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top
   //const Dtype* label = (*bottom)[1]->cpu_data();
   int dim = nClassLabel * nRotation;
 
+  int id = -1;
   for (int n = 0; n < nSample; ++n) {
     for (int i = 0; i < nRotation; ++i) {
       bottom_diff[ ( n * nRotation + i ) * dim + labelR[ n * nRotation + i ] ] -= 1;
-    
-      int id = ang[ max_ang[ n ] ][ i ];
-      for (int j = 0; j < nRotation; ++j) {
+
+      if( using_upright ){
+	id = i + max_ang[ n ];
+	if( id > nRotation - 1 )
+	  id -= nRotation;
+      }
+      else{
+	id = ang[ max_ang[ n ] ][ i ];
+      }
+      for (int j = 0; j < nRotation; ++j) 
 	if( j != i )
 	  bottom_diff[ (n * nRotation + id) * dim + j * nClassLabel + nClassLabel - 1 ] -= 1;
-      }
     }
   }
 
