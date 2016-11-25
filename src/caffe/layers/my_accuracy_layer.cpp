@@ -153,7 +153,7 @@ Dtype MyAccuracyLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     for (int i = 0; i < nRotation; ++i) {
       int idx = -1;
       if ( using_upright ){
-	int idx = i + max_ang;
+	idx = i + max_ang;
 	if( idx > nRotation - 1 )
 	  idx -= nRotation;
       }
